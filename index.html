@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <title>MVC – Todo-list</title>
+    <title>MVVM – Todo-list + filtre</title>
     <style>
       body {
         font-family: system-ui, sans-serif;
@@ -19,7 +19,7 @@
       li {
         margin: 6px 0;
       }
-            .filtres button.actif {
+      .filtres button.actif {
         background: #ffd54a;
         font-weight: bold;
         border: 2px solid #000;
@@ -27,25 +27,53 @@
     </style>
   </head>
   <body>
-    <h1>Todo-list (MVC)</h1>
+    <h1>Todo-list (MVVM)</h1>
     <div id="app">
-      <form>
-        <input placeholder="Nouvelle tâche" autofocus /> <button>Ajouter</button>
+      <form id="form">
+        <input id="titre" placeholder="Nouvelle tâche" autofocus /> <button>Ajouter</button>
       </form>
-            <p class="filtres">
+      <p class="filtres">
         <button data-filtre="toutes">Toutes</button>
         <button data-filtre="faites">Faites</button>
         <button data-filtre="a-faire">À faire</button>
       </p>
-      <p class="error"></p>
-      <ul></ul>
-      <p class="counter"></p>
+      <p id="erreur" class="error"></p>
+      <ul id="liste"></ul>
+      <p id="compteur"></p>
     </div>
     <script type="module">
-      import { TodoModel } from './TodoModel.js';
-      import { TodoView } from './TodoView.js';
-      import { TodoController } from './TodoController.js';
-      new TodoController(new TodoModel(), new TodoView(document.getElementById('app')));
+      import { TodoViewModel } from './TodoViewModel.js';
+      const vm = new TodoViewModel();
+      const boutons = document.querySelectorAll('[data-filtre]');
+
+      // VUE : uniquement des liaisons (commandes + abonnements). Ni filtrage ni calcul.
+
+      // commandes : la vue transmet les actions
+      form.onsubmit = e => {
+        e.preventDefault();
+        vm.ajouter(titre.value);
+        titre.value = '';
+      };
+      boutons.forEach(b => (b.onclick = () => vm.changerFiltre(b.dataset.filtre)));
+
+      // liaisons : la vue suit l'état du ViewModel
+      vm.erreur.subscribe(msg => (erreur.textContent = msg));
+      vm.restantes.subscribe(n => (compteur.textContent = `${n} tâche(s) à faire`));
+      vm.filtre.subscribe(nom =>
+        boutons.forEach(b => b.classList.toggle('actif', b.dataset.filtre === nom))
+      );
+      vm.visibles.subscribe(todos => {
+        liste.innerHTML = '';
+        for (const t of todos) {
+          const li = document.createElement('li');
+          li.innerHTML = `<label><input type="checkbox" ${t.done ? 'checked' : ''}>
+            <span class="${t.done ? 'done' : ''}"></span></label> <button>✕</button>`;
+          li.querySelector('span').textContent = t.title; // pas d'injection HTML
+          li.querySelector('input').onchange = () => vm.basculer(t.id);
+          li.querySelector('button').onclick = () => vm.supprimer(t.id);
+          liste.append(li);
+        }
+      });
     </script>
   </body>
 </html>
