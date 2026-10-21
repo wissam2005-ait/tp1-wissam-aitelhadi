@@ -8,7 +8,7 @@ export class TodoView {
     this.counter = root.querySelector('.counter');
     this.error = root.querySelector('.error');
   }
-  render(todos) {
+    render(todos, restantes) {
     this.list.innerHTML = '';
     for (const t of todos) {
       const li = document.createElement('li');
@@ -19,17 +19,27 @@ export class TodoView {
       li.querySelector('button').onclick = () => this.onRemove?.(t.id);
       this.list.append(li);
     }
-    this.counter.textContent = `${todos.filter(t => !t.done).length} tâche(s) à faire`;
+        this.counter.textContent = `${restantes} tâche(s) à faire`;
   }
   showError(msg) {
     this.error.textContent = msg;
+        this.filterButtons = root.querySelectorAll('[data-filtre]');
   }
+  
   bindAdd(handler) {
     this.form.addEventListener('submit', e => {
       e.preventDefault();
       handler(this.input.value);
       this.input.value = '';
     });
+  }
+    bindFilter(handler) {
+    this.filterButtons.forEach(b => {
+      b.onclick = () => handler(b.dataset.filtre);
+    });
+  }
+  showFiltre(nom) {
+    this.filterButtons.forEach(b => b.classList.toggle('actif', b.dataset.filtre === nom));
   }
   bindToggle(handler) {
     this.onToggle = handler;

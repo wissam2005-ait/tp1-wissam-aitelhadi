@@ -19,6 +19,11 @@
       li {
         margin: 6px 0;
       }
+            .filtres button.actif {
+        background: #ffd54a;
+        font-weight: bold;
+        border: 2px solid #000;
+      }
     </style>
   </head>
   <body>
@@ -27,6 +32,11 @@
       <form>
         <input placeholder="Nouvelle tâche" autofocus /> <button>Ajouter</button>
       </form>
+            <p class="filtres">
+        <button data-filtre="toutes">Toutes</button>
+        <button data-filtre="faites">Faites</button>
+        <button data-filtre="a-faire">À faire</button>
+      </p>
       <p class="error"></p>
       <ul></ul>
       <p class="counter"></p>
