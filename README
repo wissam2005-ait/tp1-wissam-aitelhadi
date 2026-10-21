@@ -3,14 +3,17 @@
 **Cours** : Architecture Logicielle · M1 INGETIS (Tronc Commun)
 **Séance 1** · parcours Dev
 **Auteur** : Wissam Ait El Hadi
-**Application** : une Todo-list en JavaScript (modules ES), sans aucune dépendance.
+**Application** : une Todo-list en JavaScript 
+, sans aucune dépendance.
 
 Ce dépôt contient la même application écrite de deux façons : d'abord en **MVC**, puis en **MVVM**. Chaque version est repérée par un tag Git.
 
 | Tag | Contenu |
 | --- | --- |
 | `v-mvc` | Todo-list avec filtre Toutes / Faites / À faire, en MVC |
-| `v-mvvm` | La même application transformée en MVVM *(partie 2)* |
+| `v-mvvm` | La même application transformée en MVVM, avec les tests du ViewModel |
+
+Pour voir la version MVC : <https://github.com/wissam2005-ait/tp1-wissam-aitelhadi/tree/v-mvc>
 
 ---
 
@@ -28,7 +31,7 @@ Trois boutons **Toutes**, **Faites** et **À faire** permettent de filtrer la li
 | `TodoView.js` | **View** : affichage et captation des clics | `bindFilter(handler)`, `showFiltre(nom)`, et `render(todos, restantes)` qui affiche simplement ce qu'on lui donne |
 | `TodoController.js` | **Controller** : relie la vue et le modèle | mémorise le filtre courant ; à chaque clic ou changement du modèle, demande `model.filtrer(...)` et `model.restantes()`, puis appelle `view.render(...)` et `view.showFiltre(...)` |
 | `index.html` | Page | les trois boutons (`data-filtre="toutes"`, `"faites"`, `"a-faire"`) et le style `.actif` |
-| `TodoModel.test.js` | Tests du modèle | tests de `filtrer` et `restantes` |
+| `TodoModel.test.js` | Tests du modèle | test de `filtrer` et de `restantes` |
 
 ### Règle respectée
 
@@ -43,7 +46,43 @@ Aucun filtrage dans la View : il n'y a pas de `.filter(...)` dans `TodoView.js`.
 
 Quand on coche une tâche alors que « À faire » est actif, le modèle notifie le contrôleur, qui redemande la liste : la tâche cochée disparaît.
 
-### Lancer le projet
+---
+
+## Partie 2 : passage en MVVM
+
+Le Controller et la classe View disparaissent. Un **ViewModel** garde l'état à afficher dans des valeurs observables et expose des commandes. La page HTML ne fait plus que deux choses : s'abonner aux valeurs du ViewModel et appeler ses commandes.
+
+### Fichiers
+
+| Fichier | Rôle |
+| --- | --- |
+| `observable.js` | mini système réactif (`get`, `set`, `subscribe`), copié depuis l'exemple MVVM du cours |
+| `TodoViewModel.js` | ViewModel : état observable et commandes, **sans aucune référence au DOM** |
+| `TodoModel.js` | inchangé : il garde les règles métier (`add`, `filtrer`, `restantes`...) |
+| `index.html` | la vue : uniquement des liaisons (`subscribe`) et des appels de commandes, sans `.filter(...)` ni calcul |
+| `TodoViewModel.test.js` | 5 tests du ViewModel |
+
+`TodoController.js` et `TodoView.js` ont été supprimés (ils restent disponibles dans le tag `v-mvc`).
+
+### Contrat du ViewModel
+
+| Membre | Type | Rôle |
+| --- | --- | --- |
+| `visibles` | observable | tâches à afficher, selon le filtre courant |
+| `restantes` | observable | nombre total de tâches non faites |
+| `filtre` | observable | `'toutes'`, `'faites'` ou `'a-faire'` |
+| `erreur` | observable | message d'erreur à afficher (chaîne vide sinon) |
+| `ajouter(titre)` | commande | appelle le modèle ; en cas d'erreur, remplit `erreur` |
+| `basculer(id)`, `supprimer(id)` | commandes | cocher / décocher, supprimer |
+| `changerFiltre(nom)` | commande | change le filtre ; erreur si le nom est inconnu |
+
+### Tests du ViewModel
+
+Les 5 tests vérifient : l'ajout d'une tâche (liste et compteur), le titre vide (erreur, rien d'ajouté), le filtre « faites », la baisse de `restantes` après avoir basculé une tâche, et l'erreur sur un filtre inconnu.
+
+---
+
+## Lancer le projet
 
 Ce dossier est prévu pour être placé dans `archi-logicielle-exemples/seance1-presentation/` (le serveur du cours en dépend).
 
@@ -62,16 +101,21 @@ Toujours depuis la racine du projet, en donnant le chemin du fichier :
 
 ```bash
 node --test seance1-presentation/tp1-wissam_aitelhadi/TodoModel.test.js
+node --test seance1-presentation/tp1-wissam_aitelhadi/TodoViewModel.test.js
 ```
-
-Le modèle se teste sans navigateur, car il ne dépend pas du DOM.
-
-### Fichiers modifiés pour ajouter le filtre en MVC
-
-**5 fichiers** : `TodoModel.js`, `TodoView.js`, `TodoController.js`, `index.html` et `TodoModel.test.js`.
 
 ---
 
-## Partie 2 : passage en MVVM
+## Comparaison MVC / MVVM
 
-*À compléter.*
+**1. Où se trouve la logique du filtre ?**
+En MVC, la règle du filtre est dans le Model (`filtrer`), et le Controller mémorise le filtre courant, puis demande la bonne liste et la transmet à la View. En MVVM, la règle reste dans le Model, mais le filtre courant et le recalcul de ce qu'on affiche (`visibles`, `restantes`) passent dans le ViewModel : la page n'a plus qu'à s'abonner.
+
+**2. Qu'a-t-on pu tester sans navigateur ?**
+En MVC, seulement le Model (`TodoModel.test.js`), car le Controller dépend de la View, donc du DOM. En MVVM, le Model **et** le ViewModel (`TodoViewModel.test.js`) : on teste aussi le filtre courant, les messages d'erreur et le compteur, sans ouvrir de page.
+
+**3. Combien de fichiers modifiés pour ajouter le filtre en MVC ?**
+Cinq : `TodoModel.js`, `TodoView.js`, `TodoController.js`, `index.html` et `TodoModel.test.js`.
+
+**4. Quelle version pour un tableau de bord QueenBee en temps réel ?**
+MVVM. Les mesures arrivent en continu : il suffit de mettre à jour des valeurs observables et chaque widget se redessine seul grâce aux liaisons, sans écrire à la main un `render` pour chaque mesure. Le ViewModel (seuils, moyennes, état d'alerte) se teste avec des mesures simulées, sans écran.
